@@ -1,0 +1,201 @@
+.TH Apache HTTP Server 2.4 Container Image
+.PP
+This container image includes Apache HTTP Server 2.4 for OpenShift and general usage.
+Users can choose between RHEL, CentOS and Fedora based images.
+The RHEL image is available in the Red Hat Container Catalog
+\[la]https://access.redhat.com/containers/#/registry.access.redhat.com/rhscl/httpd-24-rhel7\[ra]
+as registry.access.redhat.com/rhscl/httpd\-24\-rhel7.
+The CentOS image is then available on Docker Hub
+\[la]https://hub.docker.com/r/centos/httpd-24-centos7/\[ra]
+as centos/httpd\-24\-centos7.
+
+.SH Description
+.PP
+Apache HTTP Server 2.4 available as container, is a powerful, efficient,
+and extensible web server. Apache supports a variety of features, many implemented as compiled modules
+which extend the core functionality.
+These can range from server\-side programming language support to authentication schemes.
+Virtual hosting allows one Apache installation to serve many different Web sites."
+
+.SH Usage
+.PP
+For this, we will assume that you are using the Apache HTTP Server 2.4 container image from the
+Red Hat Container Catalog called \fB\fCrhscl/httpd\-24\-rhel7\fR\&.
+The image can be used as a base image for other applications based on Apache HTTP web server.
+
+.PP
+An example of the data on the host for both the examples above, that will be served by
+Apache HTTP web server:
+
+.PP
+.RS
+
+.nf
+$ ls \-lZ /wwwdata/html
+\-rw\-r\-\-r\-\-. 1 1001 1001 54321 Jan 01 12:34 index.html
+\-rw\-r\-\-r\-\-. 1 1001 1001  5678 Jan 01 12:34 page.html
+
+.fi
+.RE
+
+.PP
+If you want to run the image and mount the static pages available in \fB\fC/wwwdata\fR on the host
+as a container volume, execute the following command:
+
+.PP
+.RS
+
+.nf
+$ docker run \-d \-\-name httpd \-p 8080:8080 \-v /wwwdata:/var/www:Z rhscl/httpd\-24\-rhel7
+
+.fi
+.RE
+
+.PP
+This will create a container named \fB\fChttpd\fR running Apache HTTP Server, serving data from
+\fB\fC/wwwdata\fR directory. Port 8080 will be exposed and mapped to the host.
+
+.PP
+If you want to create a new container layered image, use Source\-to\-Image
+\[la]https://github.com/openshift/source-to-image\[ra], a tool for building/building artifacts from source and injecting into container images. To create a new container image named \fB\fChttpd\-app\fR using Source\-to\-Image, while using data available in \fB\fC/wwwdata\fR on the host, execute the following command:
+
+.PP
+.RS
+
+.nf
+$ s2i build file:///wwwdata/html rhscl/httpd\-24\-rhel7 httpd\-app
+
+.fi
+.RE
+
+.PP
+To run such a new image, execute the following command:
+
+.PP
+.RS
+
+.nf
+$ docker run \-d \-\-name httpd \-p 8080:8080 httpd\-app
+
+.fi
+.RE
+
+.PP
+The structure of httpd\-app can look like this:
+
+.PP
+\fB\fB\fC\&./httpd\-\&cfg\fR\fP
+.br
+       Can contain additional Apache configuration files (\fB\fC*.conf\fR)
+
+.PP
+\fB\fB\fC\&./httpd\-\&pre\-\&init\fR\fP
+.br
+       Can contain shell scripts (\fB\fC*.sh\fR) that are sourced before \fB\fChttpd\fR is started
+
+.PP
+\fB\fB\fC\&./httpd\-\&ssl\fR\fP
+.br
+       Can contain own SSL certificate (in \fB\fCcerts/\fR subdirectory) and key (in \fB\fCprivate/\fR subdirectory)
+
+.PP
+\fB\fB\fC\&./\fR\fP
+.br
+       Application source code
+
+.SH Environment variables and volumes
+.PP
+The Apache HTTP Server container image supports the following configuration variable, which can be set by using the \fB\fC\-e\fR option with the docker run command:
+
+.PP
+\fB\fB\fCHTTPD\_LOG\_TO\_VOLUME\fR\fP
+.br
+       By default, httpd logs into standard output, so the logs are accessible by using the docker logs command. When \fB\fCHTTPD\_LOG\_TO\_VOLUME\fR is set, httpd logs into \fB\fC/var/log/httpd24\fR, which can be mounted to host system using the container volumes. This option is only allowed when container is run as UID 0.
+
+.PP
+If you want to run the image and mount the log files into \fB\fC/wwwlogs\fR on the host
+as a container volume, execute the following command:
+
+.PP
+.RS
+
+.nf
+$ docker run \-d \-u 0 \-e HTTPD\_LOG\_TO\_VOLUME=1 \-\-name httpd \-v /wwwlogs:/var/log/httpd24:Z rhscl/httpd\-24\-rhel7
+
+.fi
+.RE
+
+.PP
+You can also set the following mount points by passing the \fB\fC\-v /host:/container\fR flag to Docker.
+
+.PP
+\fB\fB\fC/var/www\fR\fP
+.br
+       Apache HTTP Server data directory
+
+.PP
+\fB\fB\fC/var/log/httpd24\fR\fP
+.br
+       Apache HTTP Server log directory (available only when running as root, path \fB\fC/var/log/httpd\fR is used in case of Fedora based image)
+
+.PP
+\fBNotice: When mouting a directory from the host into the container, ensure that the mounted
+directory has the appropriate permissions and that the owner and group of the directory
+matches the user UID or name which is running inside the container.\fP
+
+.SH Using own SSL certificates
+.PP
+In order to provide own SSL certificates for securing the connection with SSL, use the extending feature described above. In particular, put the SSL certificates into a separate directory inside your application:
+
+.PP
+.RS
+
+.nf
+\&./httpd\-\&ssl/certs/server\-\&cert\-\&selfsigned.pem
+./httpd\-\&ssl/private/server\-\&key.pem
+
+.fi
+.RE
+
+.PP
+The default behaviour is to look for the certificate and the private key in subdirectories certs/ and private/; those files will be used for the ssl settings in the httpd.
+
+.SH Default user
+.PP
+By default, Apache HTTP Server container runs as UID 1001. That means the volume mounted directories for the files (if mounted using \fB\fC\-v\fR option) need to be prepared properly, so the UID 1001 can read them.
+
+.PP
+To run the container as a different UID, use \fB\fC\-u\fR option. For example if you want to run the container as UID 1234, execute the following command:
+
+.PP
+.RS
+
+.nf
+docker run \-d \-u 1234 rhscl/httpd\-24\-rhel7
+
+.fi
+.RE
+
+.PP
+To log into a volume mounted directory, the container needs to be run as UID 0 (see above).
+
+.SH Troubleshooting
+.PP
+The httpd deamon in the container logs to the standard output by default, so the log is available in the container log. The log can be examined by running:
+
+.PP
+.RS
+
+.nf
+docker logs <container>
+
+.fi
+.RE
+
+.SH See also
+.PP
+Dockerfile and other sources for this container image are available on
+
+\[la]https://github.com/sclorg/httpd-container\[ra]\&.
+In that repository, Dockerfile for CentOS is called Dockerfile, Dockerfile
+for RHEL is called Dockerfile.rhel7 and Dockerfile for Fedora is called Dockerfile.fedora.

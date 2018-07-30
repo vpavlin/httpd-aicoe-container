@@ -23,7 +23,7 @@ LABEL summary="$SUMMARY" \
       io.k8s.display-name="Apache httpd $HTTPD_VERSION" \
       io.openshift.expose-services="8080:http,8443:https" \
       io.openshift.tags="builder,httpd,httpd24" \
-      name="centos/httpd-24-centos7" \
+      name="centos/httpd-aicoe-24-centos7" \
       version="$HTTPD_VERSION" \
       com.redhat.component="httpd24-container" \
       usage="s2i build https://github.com/sclorg/httpd-container.git --context-dir=examples/sample-test-app/ centos/httpd-24-centos7 sample-server" \
@@ -37,6 +37,10 @@ RUN yum install -y yum-utils && \
     INSTALL_PKGS="gettext hostname nss_wrapper bind-utils httpd24 httpd24-mod_ssl httpd24-mod_auth_mellon" && \
     yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
+    yum clean all
+
+RUN yum install -y python-pip && \
+    pip install requests bs4 && \
     yum clean all
 
 ENV HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
