@@ -20,27 +20,27 @@ soup = BeautifulSoup(index, 'html.parser')
 index.close()
 wheels_check = []
 sort_wheels = {}
-headers = {'Authorization': 'token {}'.format(os.getenv('SESHETA_GITHUB_WEBHOOK_SECRET'))}
+headers = {'Authorization': 'token {}'.format(os.getenv('SESHETA_GITHUB_ACCESS_TOKEN'))}
 releases = requests.get('https://api.github.com/repos/AICoE/tensorflow-wheels/releases',headers=headers)
 if releases.status_code == 200:
     for release in releases.json():
         osver = release.get('name').split('/')[0]
         if not os.path.exists(os.path.join(os.getcwd(), release.get('name'))):
             try:
-                os.makedirs(release.get('name'))
+                os.makedirs(os.path.join(release['name'], 'simple/tensorflow/'))
             except Exception as e:
                 continue
         for asset in release.get('assets', []):
             if asset.get('name') == 'build_info.yaml':
                 continue
-            elif os.path.join(release['name'], asset['name']) not in wheels_check:
-                wheel_file_path=os.path.join(release['name'], asset['name'])
+            elif os.path.join(release['name'], 'simple/tensorflow/', asset['name']) not in wheels_check:
+                wheel_file_path=os.path.join(release['name'], 'simple/tensorflow/', asset['name'])
                 urllib.urlretrieve(asset.get('browser_download_url'),wheel_file_path)
                 py_vr=re.search(r'cp\d+', asset.get('name')).group(0)
                 py_vr=re.search(r'\d+', py_vr).group(0)
                 py_vr='.'.join(list(py_vr))
-                wheels_check.append(os.path.join(release['name'], asset['name']))
-                sort_wheels[py_vr+'-'+osver]= [osver,py_vr,wheel_file_path]
+                wheels_check.append(wheel_file_path)
+                sort_wheels[py_vr+'-'+release['name']]= [osver,py_vr,wheel_file_path]
 for key in sorted(sort_wheels.keys(),reverse=True):
     tag="<h3 style=\"text-transform: capitalize;\">{} - Python {}</h3>\n\t\t\t<ul>\n\t\t\t\t<li>\n\t\t\t\t\t<a href=\"{}\">{}</a>\n\t\t\t\t</li>\n\t\t\t</ul>\n".format(sort_wheels[key][0],sort_wheels[key][1],sort_wheels[key][2],sort_wheels[key][2])
     tag_h = BeautifulSoup(tag, 'html.parser')
