@@ -111,3 +111,17 @@ in the commands above.
 on all provided versions of Apache HTTP Server, which must be specified in  `VERSIONS` variable.
 This variable must be set to a list with possible versions (subdirectories).**
 
+Deploy and Run httpd-aicoe-container
+---------------------------------
+
+This repository has the Custom **assemble** script for performing additional requirements.
+
+- Assemble script: Downloads wheel files from releases of AICoE/tensorflow-wheels repository and updates the index.html with list of wheel files.
+- The Apache HTTP Server image is built with the centos7 Dockerfile and push to quay.io/aicoe repository.
+
+Developer can deploy and run the httpd-aicoe-container Apache HTTP Server image for the AICoE/tensorflow-wheels respository using following commands:
+1. Fetch the image from quay.io : `oc tag quay.io/aicoe/s2i-httpd-tensorflow-index:latest s2i-httpd-tensorflow-index:latest `
+2. Start the application: `oc new-app s2i-httpd-tensorflow-index~https://github.com/AICoE/tensorflow-wheels.git ` -this will start bc(assemble), dc(run).
+3. Set the github token for assemble: `oc set env bc/tensorflow-wheels SESHETA_GITHUB_ACCESS_TOKEN=<provide your Github oauth token>`
+4. Expose the route: `oc expose svc/tensorflow-wheels`
+
